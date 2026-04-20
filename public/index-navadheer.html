@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A simple, gamified habit tracker to help you build better routines. Track habits, workouts, and challenge friends.">
+    <meta property="og:title" content="Habitify - Gamified Habit Tracker">
+    <meta property="og:description" content="Build better habits, track fitness goals, and compete with friends in this easy-to-use habit tracker.">
+    <meta property="og:type" content="website">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✅</text></svg>">
+    <title>Habit Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome for Icons (Optional but good for modern look, using CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-check-circle"></i> Habitify
+        </div>
+        <div class="nav-tabs">
+            <button class="nav-tab active" type="button" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+            <button class="nav-tab" type="button" data-tab="fitness" onclick="switchTab('fitness')">Fitness</button>
+            <button class="nav-tab" type="button" data-tab="plans" onclick="switchTab('plans')">Plans</button>
+            <button class="nav-tab" type="button" data-tab="friends" onclick="switchTab('friends')">
+                Friends <span id="friendsNotifBadge" class="tab-badge" style="display:none;">0</span>
+            </button>
+        </div>
+        <div class="nav-controls">
+            <button id="themeToggle" class="icon-btn" title="Toggle Dark Mode">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="user-profile" onclick="openProfileModal()">
+                <div class="avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span id="navUsername">User</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="dashboardSection">
+        <!-- Gamification & Summary Header -->
+        <header class="dashboard-header">
+            <div class="stat-card">
+                <div class="stat-icon color-blue"><i class="fas fa-layer-group"></i></div>
+                <div class="stat-info">
+                    <h3>Level <span id="userLevel">1</span></h3>
+                    <p><span id="userXP">0</span> / <span id="nextLevelXP">100</span> XP</p>
+                    <div class="progress-bar-sm"><div class="fill" id="xpBar" style="width: 0%"></div></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon color-yellow"><i class="fas fa-star"></i></div>
+                <div class="stat-info">
+                    <h3 id="totalPoints">0</h3>
+                    <p>Total Points</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon color-red"><i class="fas fa-fire"></i></div>
+                <div class="stat-info">
+                    <h3 id="longestStreak">0 Days</h3>
+                    <p>Longest Streak</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon color-green"><i class="fas fa-check-double"></i></div>
+                <div class="stat-info">
+                    <h3 id="completionRate">0%</h3>
+                    <p>Completion Rate</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Actions Bar -->
+        <div class="actions-bar">
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="Health">Health</button>
+                <button class="filter-btn" data-filter="Study">Study</button>
+                <button class="filter-btn" data-filter="Work">Work</button>
+                <button class="filter-btn" data-filter="Personal">Personal</button>
+            </div>
+            <button class="btn-primary" onclick="openAddHabitModal()">
+                <i class="fas fa-plus"></i> New Habit
+            </button>
+        </div>
+
+        <!-- Habits Grid -->
+        <div id="habitsGrid" class="habits-grid">
+            <!-- Habit Cards will be injected here -->
+        </div>
+
+        <!-- Analytics Section -->
+        <section class="analytics-section">
+            <h2 class="section-title"><i class="fas fa-chart-line"></i> Analytics & Progress</h2>
+            
+            <div class="charts-container">
+                <div class="chart-card large">
+                    <div class="chart-header">
+                        <h3>Habit Performance</h3>
+                        <div class="chart-toggles">
+                            <button class="chart-toggle active" data-view="weekly">Weekly</button>
+                            <button class="chart-toggle" data-view="monthly">Monthly</button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Consistency Distribution</h3>
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+
+            <div class="advanced-stats">
+                <div class="stats-box">
+                    <h3>Calendar View</h3>
+                    <div id="calendarView" class="calendar-grid">
+                        <!-- Calendar days generated by JS -->
+                    </div>
+                </div>
+                
+                <div class="stats-box">
+                    <h3>Achievements</h3>
+                    <div id="badgesGrid" class="badges-grid">
+                        <!-- Badges generated by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+        </div>
+
+        <!-- Fitness Section -->
+        <div id="fitnessSection" style="display: none;">
+            <!-- Fitness Setup View (Initial) -->
+            <div id="fitnessSetup" class="fitness-setup-container">
+                <div class="setup-card">
+                    <h2><i class="fas fa-dumbbell"></i> Create Your Fitness Plan</h2>
+                    <p>Let's build a workout routine tailored to your goals.</p>
+                    
+                    <form id="fitnessSetupForm" onsubmit="event.preventDefault(); handleFitnessSetup();">
+                        <!-- Step 1: Goal -->
+                        <div class="form-group">
+                            <label>What is your main goal?</label>
+                            <div class="option-grid">
+                                <label class="option-card">
+                                    <input type="radio" name="fitGoal" value="weight_loss" required>
+                                    <div class="opt-content">
+                                        <i class="fas fa-running"></i>
+                                        <span>Weight Loss</span>
+                                    </div>
+                                </label>
+                                <label class="option-card">
+                                    <input type="radio" name="fitGoal" value="muscle_gain">
+                                    <div class="opt-content">
+                                        <i class="fas fa-biking"></i>
+                                        <span>Muscle Gain</span>
+                                    </div>
+                                </label>
+                                <label class="option-card">
+                                    <input type="radio" name="fitGoal" value="general_fitness">
+                                    <div class="opt-content">
+                                        <i class="fas fa-heartbeat"></i>
+                                        <span>General Fitness</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Level -->
+                        <div class="form-group">
+                            <label>Experience Level</label>
+                            <select id="fitLevel" class="full-width-select">
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                        </div>
+
+                        <!-- Step 3: Location & Equipment -->
+                        <div class="form-group">
+                            <label>Where will you workout?</label>
+                            <select id="fitLocation" class="full-width-select" onchange="toggleEquipmentOptions()">
+                                <option value="home">Home</option>
+                                <option value="gym">Gym</option>
+                                <option value="outdoor">Outdoor</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="equipmentGroup">
+                            <label>Available Equipment (Select all that apply)</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" name="fitEquip" value="dumbbells"> Dumbbells</label>
+                                <label><input type="checkbox" name="fitEquip" value="bands"> Resistance Bands</label>
+                                <label><input type="checkbox" name="fitEquip" value="pullup_bar"> Pull-up Bar</label>
+                                <label><input type="checkbox" name="fitEquip" value="none"> None (Bodyweight)</label>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Days & Time -->
+                        <div class="row-group">
+                            <div class="form-group">
+                                <label>Days/Week</label>
+                                <select id="fitDays" class="full-width-select">
+                                    <option value="3">3 Days</option>
+                                    <option value="4">4 Days</option>
+                                    <option value="5">5 Days</option>
+                                    <option value="6">6 Days</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Duration (mins)</label>
+                                <select id="fitDuration" class="full-width-select">
+                                    <option value="15">15 min</option>
+                                    <option value="30">30 min</option>
+                                    <option value="45">45 min</option>
+                                    <option value="60">60 min</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary full-width large-btn">Generate Plan</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Main Fitness Dashboard (After Setup) -->
+            <div id="fitnessDashboard" style="display: none;">
+                <div class="fitness-header">
+                    <div class="welcome-text">
+                        <h2 id="fitWelcome">Your Fitness Journey</h2>
+                        <p id="fitPlanSummary">Plan Summary</p>
+                    </div>
+                    <div class="fitness-actions">
+                        <button class="btn-secondary" onclick="resetFitnessPlan()"><i class="fas fa-cog"></i> Edit Plan</button>
+                    </div>
+                </div>
+
+                <div class="fitness-grid">
+                    <!-- Today's Workout -->
+                    <div class="workout-card-main">
+                        <div class="card-header-highlight">
+                            <h3><i class="fas fa-calendar-day"></i> Today's Workout</h3>
+                            <span id="workoutDayName" class="badge-tag">Monday - Upper Body</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="todayExercises" class="exercise-list">
+                                <!-- Exercises Injected Here -->
+                            </div>
+                            <div class="workout-footer">
+                                <button class="btn-success full-width" onclick="completeWorkout()"><i class="fas fa-check"></i> Complete Workout</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Schedule Preview -->
+                    <div class="schedule-preview">
+                        <h3>Weekly Schedule</h3>
+                        <div id="weeklySchedule" class="mini-schedule">
+                            <!-- Weekly summary injected here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Stats -->
+                    <div class="fitness-stats">
+                        <div class="stat-box">
+                            <h4>Workouts</h4>
+                            <span id="fitTotalWorkouts">0</span>
+                        </div>
+                        <div class="stat-box">
+                            <h4>Streak</h4>
+                            <span id="fitStreak">0</span>
+                        </div>
+                        <div class="stat-box">
+                            <h4>Calories</h4>
+                            <span id="fitCalories">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fitness-panels">
+                    <div class="fitness-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-weight-scale"></i> BMI Calculator</h3>
+                            <button class="btn-secondary" type="button" id="bmiCalcBtn">Calculate</button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="panel-grid">
+                                <div class="form-group">
+                                    <label>Height (cm)</label>
+                                    <input id="bmiHeightCm" type="number" min="50" max="250" step="0.1" placeholder="e.g. 170">
+                                </div>
+                                <div class="form-group">
+                                    <label>Weight (kg)</label>
+                                    <input id="bmiWeightKg" type="number" min="10" max="400" step="0.1" placeholder="e.g. 65">
+                                </div>
+                                <div class="form-group">
+                                    <label>Age</label>
+                                    <input id="bmiAge" type="number" min="5" max="120" step="1" placeholder="e.g. 24">
+                                </div>
+                                <div class="form-group">
+                                    <label>Gender</label>
+                                    <select id="bmiGender" class="full-width-select">
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="result-row">
+                                <div class="result-pill">
+                                    <div class="label">BMI</div>
+                                    <div class="value" id="bmiValue">—</div>
+                                </div>
+                                <div class="result-pill">
+                                    <div class="label">Category</div>
+                                    <div class="value" id="bmiCategory">—</div>
+                                </div>
+                            </div>
+                            <div class="hint" id="bmiSuggestion"></div>
+
+                            <div class="mini-split">
+                                <div class="mini-card">
+                                    <h4>BMI History</h4>
+                                    <div id="bmiHistoryList" class="mini-list"></div>
+                                </div>
+                                <div class="mini-card">
+                                    <h4>BMI Trend</h4>
+                                    <div class="chart-wrapper small">
+                                        <canvas id="bmiTrendChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fitness-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-heart-pulse"></i> Body Metrics</h3>
+                            <button class="btn-secondary" type="button" id="metricsCalcBtn">Calculate</button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="panel-grid">
+                                <div class="form-group">
+                                    <label>Activity Level</label>
+                                    <select id="activityLevel" class="full-width-select">
+                                        <option value="1.2">Sedentary</option>
+                                        <option value="1.375">Lightly active</option>
+                                        <option value="1.55">Moderately active</option>
+                                        <option value="1.725">Very active</option>
+                                        <option value="1.9">Extra active</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Waist (cm)</label>
+                                    <input id="waistCm" type="number" min="30" max="200" step="0.1" placeholder="e.g. 80">
+                                </div>
+                                <div class="form-group">
+                                    <label>Neck (cm)</label>
+                                    <input id="neckCm" type="number" min="20" max="80" step="0.1" placeholder="e.g. 36">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hip (cm, female)</label>
+                                    <input id="hipCm" type="number" min="40" max="200" step="0.1" placeholder="e.g. 95">
+                                </div>
+                            </div>
+
+                            <div class="result-row">
+                                <div class="result-pill">
+                                    <div class="label">BMR</div>
+                                    <div class="value" id="bmrValue">—</div>
+                                </div>
+                                <div class="result-pill">
+                                    <div class="label">Daily Calories</div>
+                                    <div class="value" id="tdeeValue">—</div>
+                                </div>
+                                <div class="result-pill">
+                                    <div class="label">Ideal Weight</div>
+                                    <div class="value" id="idealWeightRange">—</div>
+                                </div>
+                                <div class="result-pill">
+                                    <div class="label">Body Fat %</div>
+                                    <div class="value" id="bodyFatValue">—</div>
+                                </div>
+                                <div class="result-pill">
+                                    <div class="label">Waist/Height</div>
+                                    <div class="value" id="waistHeightRatioValue">—</div>
+                                </div>
+                            </div>
+                            <div class="hint" id="metricsHint"></div>
+                        </div>
+                    </div>
+
+                    <div class="fitness-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-bullseye"></i> Fitness Goals</h3>
+                            <button class="btn-secondary" type="button" id="saveGoalBtn">Save Goal</button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="panel-grid">
+                                <div class="form-group">
+                                    <label>Goal</label>
+                                    <select id="goalType" class="full-width-select">
+                                        <option value="weight_loss">Weight loss</option>
+                                        <option value="muscle_gain">Muscle gain</option>
+                                        <option value="maintenance">Maintenance</option>
+                                        <option value="general_fitness">General fitness</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Target Weight (kg)</label>
+                                    <input id="goalTargetWeightKg" type="number" min="10" max="400" step="0.1" placeholder="e.g. 60">
+                                </div>
+                                <div class="form-group">
+                                    <label>Weekly Target (kg/week)</label>
+                                    <input id="goalWeeklyTargetKg" type="number" min="0" max="3" step="0.1" placeholder="e.g. 0.5">
+                                </div>
+                                <div class="form-group">
+                                    <label>Deadline</label>
+                                    <input id="goalDeadline" type="date">
+                                </div>
+                            </div>
+                            <div class="hint" id="goalSummary"></div>
+                            <div class="result-row">
+                                <div class="result-pill">
+                                    <div class="label">Goal Progress</div>
+                                    <div class="value" id="goalProgress">—</div>
+                                </div>
+                                <div class="result-pill">
+                                    <div class="label">Workout Adjustments</div>
+                                    <div class="value" id="planAdjustments">—</div>
+                                </div>
+                            </div>
+
+                            <div class="mini-split">
+                                <div class="mini-card">
+                                    <h4>Manual Plan Edit</h4>
+                                    <div class="panel-grid">
+                                        <div class="form-group">
+                                            <label>Day</label>
+                                            <select id="planEditDay" class="full-width-select"></select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Type</label>
+                                            <select id="planEditType" class="full-width-select"></select>
+                                        </div>
+                                    </div>
+                                    <div class="fitness-actions-row">
+                                        <button class="btn-secondary" type="button" id="applyPlanEditBtn">Apply</button>
+                                    </div>
+                                </div>
+                                <div class="mini-card">
+                                    <h4>Warm-up & Cool-down</h4>
+                                    <div id="safetySuggestions" class="mini-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fitness-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-utensils"></i> Nutrition Support</h3>
+                            <button class="btn-secondary" type="button" id="nutritionCalcBtn">Generate</button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="panel-grid">
+                                <div class="form-group">
+                                    <label>Diet Preference</label>
+                                    <select id="dietPreference" class="full-width-select">
+                                        <option value="non_veg">Non-vegetarian</option>
+                                        <option value="vegetarian">Vegetarian</option>
+                                        <option value="vegan">Vegan</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Daily Water Target (ml)</label>
+                                    <input id="waterTargetMl" type="number" min="500" max="6000" step="50" placeholder="e.g. 2500">
+                                </div>
+                            </div>
+
+                            <div class="result-row">
+                                <div class="result-pill">
+                                    <div class="label">Calories</div>
+                                    <div class="value" id="nutritionCalories">—</div>
+                                </div>
+                                <div class="result-pill">
+                                    <div class="label">Protein (g)</div>
+                                    <div class="value" id="macroProtein">—</div>
+                                </div>
+                                <div class="result-pill">
+                                    <div class="label">Carbs (g)</div>
+                                    <div class="value" id="macroCarbs">—</div>
+                                </div>
+                                <div class="result-pill">
+                                    <div class="label">Fats (g)</div>
+                                    <div class="value" id="macroFats">—</div>
+                                </div>
+                            </div>
+
+                            <div class="mini-split">
+                                <div class="mini-card">
+                                    <h4>Sample Meal Plan</h4>
+                                    <div id="mealPlanList" class="mini-list"></div>
+                                </div>
+                                <div class="mini-card">
+                                    <h4>Daily Checklist</h4>
+                                    <div id="nutritionChecklist" class="checklist"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fitness-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-clipboard-check"></i> Workout Tracking</h3>
+                            <button class="btn-secondary" type="button" id="saveWorkoutLogBtn">Save Log</button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="hint" id="recoverySuggestion"></div>
+                            <div id="workoutLogList" class="workout-log-list"></div>
+                            <div class="result-row">
+                                <div class="result-pill">
+                                    <div class="label">Workout Status</div>
+                                    <div class="value" id="todayWorkoutStatus">—</div>
+                                </div>
+                                <div class="result-pill">
+                                    <div class="label">Est. Calories</div>
+                                    <div class="value" id="todayWorkoutCalories">—</div>
+                                </div>
+                            </div>
+                            <div class="fitness-actions-row">
+                                <button class="btn-success" type="button" id="markWorkoutCompletedBtn"><i class="fas fa-check"></i> Completed</button>
+                                <button class="btn-secondary" type="button" id="markWorkoutPartialBtn"><i class="fas fa-adjust"></i> Partial</button>
+                                <button class="btn-danger" type="button" id="markWorkoutSkippedBtn"><i class="fas fa-ban"></i> Skipped</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fitness-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-chart-simple"></i> Fitness Progress</h3>
+                            <div class="fitness-actions-row">
+                                <button class="btn-secondary" type="button" id="exportFitnessCSV"><i class="fas fa-file-csv"></i> Export CSV</button>
+                                <button class="btn-secondary" type="button" id="exportFitnessPDF"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                                <button class="btn-danger" type="button" id="resetFitnessJourney"><i class="fas fa-rotate-left"></i> Reset</button>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="mini-split">
+                                <div class="mini-card">
+                                    <h4>Weight Trend</h4>
+                                    <div class="chart-wrapper small">
+                                        <canvas id="weightTrendChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="mini-card">
+                                    <h4>Workout Consistency</h4>
+                                    <div class="chart-wrapper small">
+                                        <canvas id="workoutConsistencyChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mini-split">
+                                <div class="mini-card">
+                                    <h4>Calories Burned</h4>
+                                    <div class="chart-wrapper small">
+                                        <canvas id="fitnessCaloriesChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="mini-card">
+                                    <h4>Achievements</h4>
+                                    <div id="fitnessBadgesGrid" class="badges-grid"></div>
+                                </div>
+                            </div>
+                            <div class="hint" id="monthlyFitnessSummary"></div>
+                        </div>
+                    </div>
+
+                    <div class="fitness-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-bell"></i> Smart Reminders</h3>
+                            <button class="btn-secondary" type="button" id="enableRemindersBtn">Enable</button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="panel-grid">
+                                <div class="form-group">
+                                    <label><input id="remWorkoutEnabled" type="checkbox"> Workout reminder</label>
+                                    <input id="remWorkoutTime" type="time">
+                                </div>
+                                <div class="form-group">
+                                    <label><input id="remWaterEnabled" type="checkbox"> Water reminder</label>
+                                    <input id="remWaterInterval" type="number" min="15" max="240" step="5" placeholder="Minutes">
+                                </div>
+                                <div class="form-group">
+                                    <label><input id="remSleepEnabled" type="checkbox"> Sleep reminder</label>
+                                    <input id="remSleepTime" type="time">
+                                </div>
+                                <div class="form-group">
+                                    <label><input id="remInactivityEnabled" type="checkbox"> Inactivity alert</label>
+                                    <input id="remInactivityMinutes" type="number" min="5" max="240" step="5" placeholder="Minutes">
+                                </div>
+                            </div>
+                            <div class="hint" id="remindersHint"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Plans Section -->
+        <div id="plansSection" style="display: none;">
+            <div class="plans-layout" id="plansLayout">
+                <aside class="plans-sidebar" id="plansSidebar">
+                    <div class="plans-sidebar-header">
+                        <h3><i class="fas fa-lightbulb"></i> Plans</h3>
+                        <button class="btn-primary" type="button" id="plansNewBtn"><i class="fas fa-plus"></i> New Plan</button>
+                    </div>
+
+                    <div class="plans-sidebar-block">
+                        <input id="plansSearchInput" class="full-width-input" type="text" placeholder="Search plans by title or content">
+                        <div class="plans-filters">
+                            <select id="plansFilterCategory" class="full-width-select">
+                                <option value="all">Category (All)</option>
+                                <option value="Startup">Startup</option>
+                                <option value="Personal">Personal</option>
+                                <option value="Career">Career</option>
+                                <option value="Study">Study</option>
+                                <option value="Fitness">Fitness</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <select id="plansFilterPriority" class="full-width-select">
+                                <option value="all">Priority (All)</option>
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                            <select id="plansFilterStatus" class="full-width-select">
+                                <option value="all">Status (All)</option>
+                                <option value="Active">Active</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Archived">Archived</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="plans-sidebar-block">
+                        <div class="plans-sidebar-title">Plans List</div>
+                        <div id="plansList" class="plans-list"></div>
+                    </div>
+
+                    <div class="plans-sidebar-block">
+                        <div class="plans-sidebar-title">Plan Tools</div>
+                        <div class="plans-btn-grid">
+                            <button class="btn-secondary" type="button" id="plansAddStepBtn"><i class="fas fa-list-check"></i> Add Step</button>
+                            <button class="btn-secondary" type="button" id="plansAddMilestoneBtn"><i class="fas fa-flag"></i> Add Milestone</button>
+                            <button class="btn-secondary" type="button" id="plansReorderStepsBtn"><i class="fas fa-arrows-up-down"></i> Reorder Steps</button>
+                            <button class="btn-secondary" type="button" id="plansMarkCompletedBtn"><i class="fas fa-check"></i> Mark Completed</button>
+                            <button class="btn-secondary" type="button" id="plansArchiveBtn"><i class="fas fa-box-archive"></i> Archive</button>
+                            <button class="btn-danger" type="button" id="plansDeleteBtn"><i class="fas fa-trash"></i> Delete Plan</button>
+                        </div>
+                    </div>
+
+                    <div class="plans-sidebar-block">
+                        <div class="plans-sidebar-title">Writing Tools</div>
+                        <div class="plans-btn-grid">
+                            <button class="btn-secondary" type="button" data-plans-cmd="bold"><i class="fas fa-bold"></i> Bold</button>
+                            <button class="btn-secondary" type="button" data-plans-cmd="italic"><i class="fas fa-italic"></i> Italic</button>
+                            <button class="btn-secondary" type="button" data-plans-cmd="ul"><i class="fas fa-list-ul"></i> Bullet</button>
+                            <button class="btn-secondary" type="button" data-plans-cmd="ol"><i class="fas fa-list-ol"></i> Numbered</button>
+                            <button class="btn-secondary" type="button" data-plans-cmd="checklist"><i class="fas fa-square-check"></i> Checklist</button>
+                            <button class="btn-secondary" type="button" data-plans-cmd="code"><i class="fas fa-code"></i> Block</button>
+                            <button class="btn-secondary" type="button" data-plans-cmd="clear"><i class="fas fa-eraser"></i> Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="plans-sidebar-block">
+                        <div class="plans-sidebar-title">Organization</div>
+                        <select id="plansEditCategory" class="full-width-select">
+                            <option value="Startup">Category: Startup</option>
+                            <option value="Personal">Category: Personal</option>
+                            <option value="Career">Category: Career</option>
+                            <option value="Study">Category: Study</option>
+                            <option value="Fitness">Category: Fitness</option>
+                            <option value="Other">Category: Other</option>
+                        </select>
+                        <select id="plansEditPriority" class="full-width-select">
+                            <option value="Low">Priority: Low</option>
+                            <option value="Medium">Priority: Medium</option>
+                            <option value="High">Priority: High</option>
+                        </select>
+                        <select id="plansEditStatus" class="full-width-select">
+                            <option value="Active">Status: Active</option>
+                            <option value="Completed">Status: Completed</option>
+                            <option value="Archived">Status: Archived</option>
+                        </select>
+                        <input id="plansEditTags" class="full-width-input" type="text" placeholder="Tags (comma separated)">
+                        <div class="row-group">
+                            <input id="plansEditStartDate" class="full-width-input" type="date">
+                            <input id="plansEditTargetDate" class="full-width-input" type="date">
+                        </div>
+                    </div>
+
+                    <div class="plans-sidebar-block">
+                        <div class="plans-sidebar-title">View Modes</div>
+                        <div class="plans-btn-grid">
+                            <button class="btn-secondary" type="button" id="plansFocusModeBtn"><i class="fas fa-eye-slash"></i> Focus Mode</button>
+                            <button class="btn-secondary" type="button" id="plansReadOnlyBtn"><i class="fas fa-book"></i> Read-only</button>
+                        </div>
+                    </div>
+
+                    <div class="plans-sidebar-block">
+                        <div class="plans-sidebar-title">Export & Backup</div>
+                        <div class="plans-btn-grid">
+                            <button class="btn-secondary" type="button" id="plansExportPdfBtn"><i class="fas fa-file-pdf"></i> PDF</button>
+                            <button class="btn-secondary" type="button" id="plansExportMarkdownBtn"><i class="fas fa-file-lines"></i> Markdown</button>
+                            <button class="btn-secondary" type="button" id="plansExportTextBtn"><i class="fas fa-file"></i> Text</button>
+                        </div>
+                    </div>
+                </aside>
+
+                <main class="plans-workbench">
+                    <div class="plans-workbench-header">
+                        <div class="plans-workbench-title">
+                            <input id="plansTitleInput" class="plans-title-input" type="text" placeholder="Plan Title">
+                            <textarea id="plansShortDescInput" class="plans-shortdesc-input" placeholder="Short Description"></textarea>
+                            <div class="plans-subline">
+                                <div id="plansMetaBadges" class="plans-meta-badges"></div>
+                                <div id="plansLastUpdated" class="plans-last-updated"></div>
+                            </div>
+                        </div>
+                        <div class="plans-save-indicator" id="plansSaveIndicator">Saved</div>
+                    </div>
+
+                    <div class="plans-progress-row">
+                        <div class="progress-bar-sm"><div class="fill" id="plansProgressFill" style="width: 0%"></div></div>
+                        <div class="plans-progress-text" id="plansProgressText">0/0 • 0%</div>
+                    </div>
+
+                    <div class="plans-workbench-body">
+                        <div id="plansEmptyState" class="hint">Create a plan to start writing and breaking it into steps.</div>
+                        <div id="plansEditorWrap" style="display:none;">
+                            <div id="plansEditor" class="plans-editor" contenteditable="true"></div>
+                            <div class="plans-steps-header">
+                                <h3>Steps & Milestones</h3>
+                            </div>
+                            <div id="plansMilestones" class="plans-milestones"></div>
+                            <div id="plansStepsList" class="plans-steps"></div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- Friends Section -->
+        <div id="friendsSection" style="display: none;">
+            <div class="friends-layout">
+                <div class="friends-left">
+                    <div class="friends-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-users"></i> Friends Feed</h3>
+                            <div class="friends-feed-controls">
+                                <select id="friendsFeedScope" class="full-width-select">
+                                    <option value="friends">Friends</option>
+                                    <option value="global">Global</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div id="friendsFeedList" class="friends-feed"></div>
+                            <div class="friends-actions-row">
+                                <button class="btn-secondary" type="button" id="friendsFeedLoadMore">Load more</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="friends-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-trophy"></i> Leaderboards</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="friends-filters">
+                                <select id="lbScope" class="full-width-select">
+                                    <option value="global">Global</option>
+                                    <option value="friends">Friends-only</option>
+                                </select>
+                                <select id="lbMetric" class="full-width-select">
+                                    <option value="daily_habits">Daily habit completion</option>
+                                    <option value="weekly_consistency">Weekly consistency</option>
+                                    <option value="fitness_workouts">Fitness workouts</option>
+                                    <option value="overall_streak">Overall streak</option>
+                                    <option value="rank_points">Rank points</option>
+                                </select>
+                                <select id="lbCategory" class="full-width-select">
+                                    <option value="all">All</option>
+                                    <option value="fitness">Fitness</option>
+                                    <option value="study">Study</option>
+                                    <option value="productivity">Productivity</option>
+                                </select>
+                            </div>
+                            <div id="leaderboardList" class="friends-leaderboard"></div>
+                        </div>
+                    </div>
+
+                    <div class="friends-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-flag-checkered"></i> Challenges</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="friends-filters">
+                                <input id="challengeName" class="full-width-input" type="text" placeholder="Challenge name">
+                                <select id="challengeDuration" class="full-width-select">
+                                    <option value="7">7 days</option>
+                                    <option value="14">14 days</option>
+                                    <option value="30">30 days</option>
+                                </select>
+                                <select id="challengeType" class="full-width-select">
+                                    <option value="habits">Habits</option>
+                                    <option value="workouts">Workouts</option>
+                                </select>
+                            </div>
+                            <div class="friends-actions-row">
+                                <button class="btn-primary" type="button" id="createChallengeBtn"><i class="fas fa-plus"></i> Create</button>
+                            </div>
+                            <div class="hint" style="margin-top: 0.6rem;">Invite friends</div>
+                            <div id="challengeInviteList" class="friends-users"></div>
+                            <div id="challengesList" class="friends-challenges"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="friends-right">
+                    <div class="friends-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-id-badge"></i> Your Profile</h3>
+                            <button class="btn-secondary" type="button" id="saveFriendsProfileBtn">Save</button>
+                        </div>
+                        <div class="panel-body">
+                            <div id="friendsLoginGate" class="hint"></div>
+                            <div class="friends-profile">
+                                <div class="friends-avatar">
+                                    <img id="friendsProfilePhotoPreview" alt="" style="display:none;">
+                                    <div id="friendsAvatarFallback" class="avatar large"><i class="fas fa-user"></i></div>
+                                </div>
+                                <div class="friends-profile-fields">
+                                    <div class="form-group">
+                                        <label>Profile photo</label>
+                                        <input id="friendsProfilePhoto" type="file" accept="image/*">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Bio</label>
+                                        <input id="friendsBio" type="text" placeholder="Short motivation line">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Privacy</label>
+                                        <select id="friendsPrivacy" class="full-width-select">
+                                            <option value="public">Public</option>
+                                            <option value="private">Private</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="friends-stats-grid" id="friendsSelfStats"></div>
+                            <div class="friends-rank" id="friendsRankCard"></div>
+                        </div>
+                    </div>
+
+                    <div class="friends-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-user-plus"></i> Discover</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="friends-search">
+                                <input id="friendsSearchInput" class="full-width-input" type="text" placeholder="Search by username">
+                                <button class="btn-secondary" type="button" id="friendsSearchBtn">Search</button>
+                            </div>
+                            <div id="friendsSearchResults" class="friends-users"></div>
+                            <div class="hint" style="margin-top: 0.8rem;">Suggested users</div>
+                            <div id="friendsSuggestions" class="friends-users"></div>
+                        </div>
+                    </div>
+
+                    <div class="friends-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-user-check"></i> Requests</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div id="friendsRequestsIn" class="friends-users"></div>
+                        </div>
+                    </div>
+
+                    <div class="friends-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-bell"></i> Notifications</h3>
+                            <button class="btn-secondary" type="button" id="markFriendsNotifRead">Mark read</button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="friends-filters">
+                                <label class="friends-toggle"><input id="prefNotifyFollow" type="checkbox"> Follow updates</label>
+                                <label class="friends-toggle"><input id="prefNotifyChallenges" type="checkbox"> Challenges</label>
+                                <label class="friends-toggle"><input id="prefNotifyRank" type="checkbox"> Rank changes</label>
+                                <label class="friends-toggle"><input id="prefNotifyMessages" type="checkbox"> Motivation messages</label>
+                            </div>
+                            <div id="friendsNotifList" class="friends-notifs"></div>
+                        </div>
+                    </div>
+
+                    <div class="friends-panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-shield"></i> Safety</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="hint">Blocking hides a user and removes connections.</div>
+                            <div id="friendsBlockedList" class="friends-users"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Add/Edit Habit Modal -->
+    <div id="habitModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="habitModalTitle">Add New Habit</h3>
+                <button class="close-btn" onclick="closeHabitModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="habitId">
+                <div class="form-group">
+                    <label>Habit Name</label>
+                    <input type="text" id="habitNameInput" placeholder="e.g. Read 30 mins">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="habitCategoryInput">
+                        <option value="Health">Health</option>
+                        <option value="Study">Study</option>
+                        <option value="Work">Work</option>
+                        <option value="Personal">Personal</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeHabitModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveHabit()">Save Habit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note/Missed Modal -->
+    <div id="noteModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Log Activity</h3>
+                <button class="close-btn" onclick="closeNoteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="noteHabitId">
+                <input type="hidden" id="noteDate">
+                <input type="hidden" id="noteStatus"> <!-- completed or missed -->
+                <p id="notePrompt">Add a note (optional):</p>
+                <textarea id="noteInput" rows="3" placeholder="Why did you miss it? or How did it go?"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeNoteModal()">Skip Note</button>
+                <button class="btn-primary" onclick="saveNote()">Save Log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Account</h3>
+                <button class="close-btn" onclick="closeProfileModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="profileContent">
+                <!-- Content injected via JS based on auth state -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Login</h3>
+                <button class="close-btn" onclick="closeLoginModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter password">
+                </div>
+                <p id="loginError" class="error-text"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeLoginModal()">Cancel</button>
+                <button class="btn-primary" onclick="handleLogin()">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Create Account</h3>
+                <button class="close-btn" onclick="closeRegisterModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="registerName" placeholder="Enter your name">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="registerEmail" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="registerPassword" placeholder="Choose a password">
+                </div>
+                 <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="registerConfirmPassword" placeholder="Confirm password">
+                </div>
+                <p id="registerError" class="error-text"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeRegisterModal()">Cancel</button>
+                <button class="btn-primary" onclick="handleRegister()">Register</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
